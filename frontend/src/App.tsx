@@ -89,7 +89,7 @@ function ChatBot() {
         method: "POST",
         headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer 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",
+        "Authorization": "Bearer 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",
         "HTTP-Referer": window.location.href,
         "X-Title": "Shreyaas Portfolio",
       },
