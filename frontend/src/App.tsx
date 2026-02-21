@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -84,13 +85,27 @@ function ChatBot() {
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/chat", {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer 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",
+        "HTTP-Referer": window.location.href,
+        "X-Title": "Shreyaas Portfolio",
+      },
+        body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct:free",
+        messages: [
+          { role: "system", content: "You are Shreyaas Guptas friendly portfolio assistant. He is a 2nd year BTech CSE student at SRM University Chennai. Skills: HTML CSS JavaScript Python Java C/C++ Git MySQL Linux. Projects: Speech Emotion Classification ML, CacheLab CPU Cache Simulator C++, Traffic Routing Engine C++, Portfolio Website React Supabase. Experience: Research Intern UROP building ML model for speech emotion classification. Answer questions about Shreyaas briefly and professionally." },
+          ...messages,
+          userMsg,
+        ],
+        max_tokens: 300,
+      }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data }]);
+      const reply = data.choices?.[0]?.message?.content || "Sorry, I could not get a response.";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, couldn't reach the server!" }]);
     }
