@@ -1,10 +1,69 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 
+// ── Supabase setup ──────────────────────────────────────
+const supabase = createClient(
+  "https://hnpqpggamaixhcctbzkr.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhucHFwZ2dhbWFpeGhjY3RiemtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2Njg2MjUsImV4cCI6MjA4NzI0NDYyNX0.8RRz1ndi803OmrmSdTKhU8hDuUEyfsDwduqmrxjkr9w"
+);
+
+// ── Types ───────────────────────────────────────────────
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
+// ── Contact Form ────────────────────────────────────────
+function ContactForm() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !email || !message) return;
+    setStatus("loading");
+
+    const { error } = await supabase
+      .from("messages")
+      .insert([{ name, email, message }]);
+
+    if (error) {
+      console.error(error);
+      setStatus("error");
+    } else {
+      setStatus("success");
+      setName(""); setEmail(""); setMessage("");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}
+      style={{ maxWidth: "560px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.2rem", width: "100%" }}>
+      <input className="contact-input" type="text" placeholder="Your Name"
+        value={name} onChange={e => setName(e.target.value)} required />
+      <input className="contact-input" type="email" placeholder="Your Email"
+        value={email} onChange={e => setEmail(e.target.value)} required />
+      <textarea className="contact-input" placeholder="Your Message" rows={5}
+        value={message} onChange={e => setMessage(e.target.value)} required style={{ resize: "vertical" }} />
+
+      {status === "success" && (
+        <p style={{ color: "#4caf50", fontSize: "0.9rem" }}>✅ Message saved! I'll get back to you soon.</p>
+      )}
+      {status === "error" && (
+        <p style={{ color: "#f44336", fontSize: "0.9rem" }}>❌ Something went wrong. Try again.</p>
+      )}
+
+      <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start" }} disabled={status === "loading"}>
+        {status === "loading" ? "Sending..." : "Send Message"}
+      </button>
+    </form>
+  );
+}
+
+// ── ChatBot ─────────────────────────────────────────────
 function ChatBot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -40,18 +99,15 @@ function ChatBot() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          position: "fixed", bottom: "2.5rem", right: "2.5rem",
-          width: "60px", height: "60px", borderRadius: "50%",
-          background: "linear-gradient(135deg, #b74b4b, #ff6b6b)",
-          border: "none", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 30px rgba(183,75,75,0.6)", zIndex: 1000,
-          transition: "transform 0.2s ease, box-shadow 0.2s ease",
-        }}
-      >
+      <button onClick={() => setOpen((o) => !o)} style={{
+        position: "fixed", bottom: "2.5rem", right: "2.5rem",
+        width: "60px", height: "60px", borderRadius: "50%",
+        background: "linear-gradient(135deg, #b74b4b, #ff6b6b)",
+        border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 0 30px rgba(183,75,75,0.6)", zIndex: 1000,
+        transition: "transform 0.2s ease",
+      }}>
         {open ? (
           <svg width="22" height="22" viewBox="0 0 24 24">
             <path d="M18 6L6 18M6 6l12 12" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
@@ -67,17 +123,12 @@ function ChatBot() {
       {open && (
         <div style={{
           position: "fixed", bottom: "7rem", right: "2.5rem",
-          width: "360px", height: "480px",
-          background: "#0d0d0d",
-          border: "1px solid rgba(183,75,75,0.4)",
-          borderRadius: "1.5rem",
-          display: "flex", flexDirection: "column",
-          zIndex: 999,
-          boxShadow: "0 0 60px rgba(183,75,75,0.2)",
-          overflow: "hidden",
+          width: "360px", height: "480px", background: "#0d0d0d",
+          border: "1px solid rgba(183,75,75,0.4)", borderRadius: "1.5rem",
+          display: "flex", flexDirection: "column", zIndex: 999,
+          boxShadow: "0 0 60px rgba(183,75,75,0.2)", overflow: "hidden",
           animation: "slideUp 0.3s ease",
         }}>
-          {/* Header */}
           <div style={{
             padding: "1.2rem 1.5rem",
             background: "linear-gradient(135deg, rgba(183,75,75,0.3), rgba(183,75,75,0.1))",
@@ -96,7 +147,6 @@ function ChatBot() {
             </div>
           </div>
 
-          {/* Messages */}
           <div style={{
             flex: 1, overflowY: "auto", padding: "1rem",
             display: "flex", flexDirection: "column", gap: "0.8rem",
@@ -128,22 +178,15 @@ function ChatBot() {
             <div ref={bottomRef}/>
           </div>
 
-          {/* Input */}
-          <div style={{
-            padding: "1rem", borderTop: "1px solid rgba(183,75,75,0.2)",
-            display: "flex", gap: "0.6rem",
-          }}>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+          <div style={{ padding: "1rem", borderTop: "1px solid rgba(183,75,75,0.2)", display: "flex", gap: "0.6rem" }}>
+            <input value={input} onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Ask me anything..."
               style={{
                 flex: 1, padding: "0.75rem 1rem",
                 background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(183,75,75,0.3)",
-                borderRadius: "2rem", color: "white",
-                fontSize: "0.88rem", outline: "none",
+                borderRadius: "2rem", color: "white", fontSize: "0.88rem", outline: "none",
               }}
             />
             <button onClick={send} disabled={loading} style={{
@@ -174,6 +217,7 @@ function ChatBot() {
   );
 }
 
+// ── Main App ─────────────────────────────────────────────
 export default function App() {
   const [activeSection, setActiveSection] = useState("home");
   const [typedText, setTypedText] = useState("");
@@ -334,6 +378,7 @@ export default function App() {
           background: #b74b4b; color: white;
           box-shadow: 0 0 25px rgba(183,75,75,0.5); transform: scale(1.03);
         }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .contact-input {
           width: 100%; padding: 1rem 1.2rem;
           background: rgba(255,255,255,0.04);
@@ -393,14 +438,9 @@ export default function App() {
             Second-year B.Tech CSE student at SRM University. I build system simulators, algorithmic engines, data pipelines, and web apps. CGPA: <span style={{ color: "#b74b4b", fontWeight: "600" }}>8.8/10</span>
           </p>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-            <a 
-              href="https://mail.google.com/mail/?view=cm&to=shreyaasgupta280@gmail.com" 
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary" 
-              style={{ textDecoration: "none" }}
-             >
-             Hire Me
+            <a href="https://mail.google.com/mail/?view=cm&to=shreyaasgupta280@gmail.com"
+              target="_blank" rel="noreferrer" className="btn-primary" style={{ textDecoration: "none" }}>
+              Hire Me
             </a>
             <button className="btn-primary" style={{ color: "rgba(255,255,255,0.7)", borderColor: "rgba(255,255,255,0.2)" }}
               onClick={() => scrollTo("skills")}>View Work</button>
@@ -429,9 +469,7 @@ export default function App() {
           }}>
             <img src="/images/shreyaas.jpeg" alt="Shreyaas"
               style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
           </div>
         </div>
@@ -478,48 +516,40 @@ export default function App() {
       </section>
 
       {/* EDUCATION */}
-<section id="education" style={{ minHeight: "60vh", padding: "8rem 6%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-  <p style={{ color: "#b74b4b", fontSize: "0.9rem", fontWeight: "600", letterSpacing: "0.15em", textTransform: "uppercase", textAlign: "center", marginBottom: "0.8rem" }}>Academic background</p>
-  <h2 style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: "800", textAlign: "center", marginBottom: "4rem" }}>
-    My <span style={{ color: "#b74b4b" }}>Education</span>
-  </h2>
-  <div style={{ maxWidth: "700px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.5rem", width: "100%" }}>
-    {[
-      { title: "B.Tech in Computer Science & Engineering", sub: "SRM Institute of Science & Technology, Chennai", detail: "CGPA: 8.8/10 · 2024 – 2028 (Expected)" },
-      { title: "Non-Medical (Class XII)", sub: "ASAM Memorial Senior Secondary School, Chennai", detail: "2022 – 2024" },
-    ].map(e => (
-      <div key={e.title} style={{
-        paddingLeft: "2rem",
-        paddingTop: "1.2rem",
-        paddingBottom: "1.2rem",
-        paddingRight: "2rem",
-        background: "rgba(183,75,75,0.04)",
-        borderRadius: "0 1rem 1rem 0",
-        border: "1px solid rgba(183,75,75,0.2)",
-        borderLeft: "4px solid #b74b4b",
-      }}>
-        <h3 style={{ fontSize: "1.15rem", fontWeight: "700", color: "#b74b4b", marginBottom: "0.4rem" }}>{e.title}</h3>
-        <p style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.7)", marginBottom: "0.3rem" }}>{e.sub}</p>
-        <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)" }}>{e.detail}</p>
-      </div>
-    ))}
-    <div style={{ marginTop: "1rem" }}>
-      <h3 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "1rem", color: "rgba(255,255,255,0.8)" }}>Certifications</h3>
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        {["NPTEL: Java Programming (91%)", "NPTEL: OOP Fundamentals (81%)", "Udemy: Java Beginner to Master"].map(c => (
-          <span key={c} style={{
-            padding: "0.5rem 1rem",
-            border: "1px solid rgba(183,75,75,0.3)",
-            borderRadius: "2rem",
-            fontSize: "0.85rem",
-            color: "rgba(255,255,255,0.7)",
-            background: "rgba(183,75,75,0.06)",
-          }}>{c}</span>
-        ))}
-      </div>
-    </div>
-  </div>
-</section>
+      <section id="education" style={{ minHeight: "60vh", padding: "8rem 6%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <p style={{ color: "#b74b4b", fontSize: "0.9rem", fontWeight: "600", letterSpacing: "0.15em", textTransform: "uppercase", textAlign: "center", marginBottom: "0.8rem" }}>Academic background</p>
+        <h2 style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: "800", textAlign: "center", marginBottom: "4rem" }}>
+          My <span style={{ color: "#b74b4b" }}>Education</span>
+        </h2>
+        <div style={{ maxWidth: "700px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.5rem", width: "100%" }}>
+          {[
+            { title: "B.Tech in Computer Science & Engineering", sub: "SRM Institute of Science & Technology, Chennai", detail: "CGPA: 8.8/10 · 2024 – 2028 (Expected)" },
+            { title: "Non-Medical (Class XII)", sub: "ASAM Memorial Senior Secondary School, Chennai", detail: "2022 – 2024" },
+          ].map(e => (
+            <div key={e.title} style={{
+              paddingLeft: "2rem", paddingTop: "1.2rem", paddingBottom: "1.2rem", paddingRight: "2rem",
+              background: "rgba(183,75,75,0.04)", borderRadius: "0 1rem 1rem 0",
+              border: "1px solid rgba(183,75,75,0.2)", borderLeft: "4px solid #b74b4b",
+            }}>
+              <h3 style={{ fontSize: "1.15rem", fontWeight: "700", color: "#b74b4b", marginBottom: "0.4rem" }}>{e.title}</h3>
+              <p style={{ fontSize: "0.95rem", color: "rgba(255,255,255,0.7)", marginBottom: "0.3rem" }}>{e.sub}</p>
+              <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)" }}>{e.detail}</p>
+            </div>
+          ))}
+          <div style={{ marginTop: "1rem" }}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: "700", marginBottom: "1rem", color: "rgba(255,255,255,0.8)" }}>Certifications</h3>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              {["NPTEL: Java Programming (91%)", "NPTEL: OOP Fundamentals (81%)", "Udemy: Java Beginner to Master"].map(c => (
+                <span key={c} style={{
+                  padding: "0.5rem 1rem", border: "1px solid rgba(183,75,75,0.3)",
+                  borderRadius: "2rem", fontSize: "0.85rem", color: "rgba(255,255,255,0.7)",
+                  background: "rgba(183,75,75,0.06)",
+                }}>{c}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* EXPERIENCE */}
       <section id="experience" style={{ minHeight: "60vh", padding: "8rem 6%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -553,15 +583,7 @@ export default function App() {
         <p style={{ textAlign: "center", color: "rgba(255,255,255,0.5)", marginBottom: "3rem" }}>
           Looking for a Summer 2026 internship. Let's talk!
         </p>
-        <form
-          style={{ maxWidth: "560px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "1.2rem", width: "100%" }}
-          onSubmit={(e) => { e.preventDefault(); alert("Message sent!"); }}
-        >
-          <input className="contact-input" type="text" placeholder="Your Name" required />
-          <input className="contact-input" type="email" placeholder="Your Email" required />
-          <textarea className="contact-input" placeholder="Your Message" rows={5} required style={{ resize: "vertical" }} />
-          <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start" }}>Send Message</button>
-        </form>
+        <ContactForm />
       </section>
 
       {/* FOOTER */}
@@ -569,7 +591,7 @@ export default function App() {
         padding: "2rem 6%", borderTop: "1px solid rgba(183,75,75,0.15)",
         textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: "0.88rem",
       }}>
-        © 2025 Shreyaas Gupta · Built with React + FastAPI + ❤️
+        © 2025 Shreyaas Gupta · Built with React + Supabase + ❤️
       </footer>
 
       <ChatBot />
